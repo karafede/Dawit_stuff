@@ -29,7 +29,7 @@ library(htmlwidgets)
 # ###################################################################
 
 
-setwd("Z:/_SHARED_FOLDERS/Air Quality/Phase 1/Pathflow of Phase I_DG/dawit Data/daily data/Daily filtered with 4 boxplot")
+setwd("Z:/_SHARED_FOLDERS/Air Quality/Phase 1/Pathflow of Phase I_DG/dawit Data/Hourly Database format CSV/Arranged dates/R files/filtered_4_box")
 #setwd("D:/Daily filtered with 4 boxplot")
 # setwd("disk3/fkaragulian/GWR/Daily filtered with 4 boxplot")
 
@@ -38,20 +38,22 @@ setwd("Z:/_SHARED_FOLDERS/Air Quality/Phase 1/Pathflow of Phase I_DG/dawit Data/
 ###########################################################################
 
 
-EAD_data_2013 <- read_csv("database_EAD_ 2013 _daily_filtered.csv")[3:14]
-EAD_data_2014 <- read_csv("database_EAD_ 2014 _daily_filtered.csv")[3:14]
-EAD_data_2015 <- read_csv("database_EAD_ 2015 _daily_filtered.csv")[3:14]
-EAD_data_2016 <- read_csv("database_EAD_ 2016 _daily_filtered.csv")[3:14]
 
-DM_data_2013 <- read_csv("database_DM_ 2013 _daily_filtered.csv")[3:14]
-DM_data_2014 <- read_csv("database_DM_ 2014 _daily_filtered.csv")[3:14]
-DM_data_2015 <- read_csv("database_DM_ 2015 _daily_filtered.csv")[3:14]
-DM_data_2016 <- read_csv("database_DM_ 2016 _daily_filtered.csv")[3:14]
 
-NCMS_data_2013 <- read_csv("database_NCMS_ 2013 _daily_filtered.csv")[3:14]
-NCMS_data_2014 <- read_csv("database_NCMS_ 2014 _daily_filtered.csv")[3:14]
-NCMS_data_2015 <- read_csv("database_NCMS_ 2015 _daily_filtered.csv")[3:14]
-NCMS_data_2016 <- read_csv("database_NCMS_ 2016 _daily_filtered.csv")[3:14]
+EAD_data_2013 <- read_csv("database_EAD_ 2013 _hourly_filtered.csv")[-1]
+EAD_data_2014 <- read_csv("database_EAD_ 2014 _hourly_filtered.csv")[-1]
+EAD_data_2015 <- read_csv("database_EAD_ 2015 _hourly_filtered.csv")[-1]
+EAD_data_2016 <- read_csv("database_EAD_ 2016 _hourly_filtered.csv")[-1]
+
+DM_data_2013 <- read_csv("database_DM_ 2013 _hourly_filtered.csv")[-1]
+DM_data_2014 <- read_csv("database_DM_ 2014 _hourly_filtered.csv")[-1]
+DM_data_2015 <- read_csv("database_DM_ 2015 _hourly_filtered.csv")[-1]
+DM_data_2016 <- read_csv("database_DM_ 2016 _hourly_filtered.csv")[-1]
+
+NCMS_data_2013 <- read_csv("database_NCMS_ 2013 _hourly_filtered.csv")[-1]
+NCMS_data_2014 <- read_csv("database_NCMS_ 2014 _hourly_filtered.csv")[-1]
+NCMS_data_2015 <- read_csv("database_NCMS_ 2015 _hourly_filtered.csv")[-1]
+NCMS_data_2016 <- read_csv("database_NCMS_ 2016 _hourly_filtered.csv")[-1]
 
 AQ_data <- rbind(EAD_data_2013, EAD_data_2014, EAD_data_2015, EAD_data_2016, 
                  DM_data_2013, DM_data_2014, DM_data_2015, DM_data_2016,
@@ -59,17 +61,28 @@ AQ_data <- rbind(EAD_data_2013, EAD_data_2014, EAD_data_2015, EAD_data_2016,
 
 str(AQ_data)
 
-AQ_data[,1][AQ_data[,1]=="DUBAIAIRPORT"]<- "DUBAI AIR PORT"
-
-
+AQ_data<- AQ_data%>%
+  mutate(DateTime = DateTime+300)
 
 AQ_data <- AQ_data %>%
-  mutate(Date = ymd(Date, tz = "UTC"))%>%
+  mutate(Date= ymd_hms(DateTime))%>%
+  mutate(hou= hour(Date))
+
+
+AQ_data_12 <- AQ_data %>%
+  filter(hou == 12)
+
+AQ_data_12[,2][AQ_data_12[,2]=="DUBAIAIRPORT"]<- "DUBAI AIR PORT"
+
+
+
+AQ_data_12  <- AQ_data_12 %>%
+  #mutate(Date = ymd(Date, tz = "UTC"))%>%
   mutate(months=month(Date))%>%                # DG adding month
   mutate(years=year(Date))                     # DG adding year
 
 
-AQ_data_PM25 <- AQ_data %>%
+AQ_data_PM25 <- AQ_data_12 %>%
   filter(Pollutant == "PM2.5") %>%
   #filter(Date == as.Date("2016-08-26"))      # DG 
   filter (months==1)
@@ -77,14 +90,14 @@ AQ_data_PM25 <- AQ_data %>%
 # monthly mean of january
 AQ_data_PM25 <- AQ_data_PM25 %>%
   group_by(Site, years) %>%
-  summarize(mon_mean= mean(Daily_mean, na.rm = T))
+  summarize(mon_mean= mean(Value, na.rm = T))
 
 # monthly mean of january
 AQ_data_PM25 <- AQ_data_PM25 %>%
   group_by(Site) %>%
   summarize(sea_mean=mean(mon_mean, na.rm = T))
 
-coordin_site<-filter(AQ_data, Date==as.Date("2013-01-01") & Pollutant == "PM2.5" )
+coordin_site<-filter(AQ_data, Date==AQ_data$Date[1] & Pollutant == "PM2.5" )
 
 
 AQ_data_PM25<- left_join(AQ_data_PM25, coordin_site, by= c("Site"= "Site" ))
@@ -123,6 +136,7 @@ str(r_moni)
 
 writeRaster(r_moni, paste0("D:/Air Quality/GWR/Saves from GWR script/in_situ_kriging_UAE.tif"), overwrite = TRUE)
 rm(list = ls(all = TRUE))
+
 
 
 ######################################################################
